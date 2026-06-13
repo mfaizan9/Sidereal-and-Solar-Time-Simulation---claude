@@ -1,0 +1,89 @@
+{
+  "_comment": "Please place new simulation entries (like the newSim example) in alphabetical order.",
+
+  "newSim": {
+    "meta": {
+      "title": "Simulation Title",
+      "version": "2.0"
+    },
+    "masthead": {
+      "help": {
+        "title": "Help and Instructions",
+        "content": "<p>Leave this string completely blank for no Help button.</p>"
+      },
+      "about": {
+        "title": "About this Simulation",
+        "content": "<p>Sim-specific information goes here, followed by boilerplate.</p><p>This demonstrator has been modernized by a AAS Task Force to meet modern web accessibility standards (WCAG 2.1 AA).</p><p>Initial funding for this work was provided by NSF grants #0231270 and/or #0404988.</p><p>Permission is granted to use these files for noncommercial purposes as long as they remain unmodified.</p>"
+      }
+    }
+  }, 
+
+  "hrExplorer": {
+    "meta": {
+      "title": "Hertzsprung-Russell Diagram Explorer",
+      "version": "2.0 (Accessible HTML5)"
+    },
+    "masthead": {
+      "help": {
+        "title": "Help and Instructions",
+        "content": "<p>This explorer introduces the Hertzsprung-Russell diagram, a plot showing the relationship between luminosity and temperature for stars.</p><p>The diagram is shown in the upper right panel. The cursor (the red 'x') represents a star plotted with the temperature and luminosity shown in the <em>Cursor Properties</em> panel. The cursor's location can be changed by dragging it around or adjusting the sliders. The <em>Size Comparison</em> panel shows what a star at the cursor's position would look like next to the sun.</p><p>Optionally, one can select to show features like the main sequence (where young, unevolved stars are found), isoradius lines (lines along which all stars have the same radius), luminosity classes, and the instability strip (where pulsating stars are found). The x and y scales can also be changed. This is possible because temperature and luminosity can be correlated with other, more easily observed properties of stars, such as color indices and absolute magnitudes.</p><p>One can also plot the nearest and brightest stars in the diagram. There are 149 stars in the bright stars group (selected from the Bright Star Catalog), 124 in the nearby stars group (from the Research Consortium on Nearby Stars website), and 5 stars that belong to both groups.</p>"
+      },
+      "about": {
+        "title": "About this Simulation",
+        "content": "<p>This simulator is part of the Hertzsprung-Russell Diagram Module of the <a href=\"https://astro.unl.edu/naap/\">Nebraska Astronomy Applet Project</a>. Supporting materials and additional astronomy education resources can be found there.</p><p>This simulator has been modernized by a AAS Task Force to meet modern web accessibility standards (WCAG 2.1 AA).</p><p>Initial funding for this work was provided by NSF grants #0231270 and/or #0404988.</p><p>Permission is granted to use these files for noncommercial purposes as long as they remain unmodified.</p>"
+      }
+    }
+  },
+  
+  "hydrogenatom": {
+    "meta": {
+      "title": "Hydrogen Atom Simulator",
+      "version": "2.0"
+    },
+    "masthead": {
+      "help": {
+        "title": "Help and Instructions",
+        "content": "<p>This simulator models the interaction of a hydrogen atom with light, demonstrating the quantum nature of absorption and emission.</p><p>Use the Photon Selection panel to fire a photon at the atom. Pressing the fire photon button will fire a photon with the energy selected by the slider. Pressing one of the other preset buttons will fire a photon with the energy corresponding to that particular transition.</p><p>The Energy Level Diagram panel provides an alternate representation of the atom's state, showing how the energy needed to ionize the atom depends on which level the electron is in.</p><p>The Event Log provides a history of the events in the simulator. The most recent entries are added at the bottom.</p><p>For demonstration purposes you can drag the electron between levels. Doing this clears the log, however.</p>"
+      },
+      "about": {
+        "title": "About this Simulator",
+        "content": "<p>This simulator is part of the Hydrogen Energy Levels Module of the <a href=\"https://astro.unl.edu/naap/\">Nebraska Astronomy Applet Project</a>. Supporting materials and additional astronomy education resources can be found there.</p><p>This demonstrator has been modernized by a AAS Task Force to meet modern web accessibility standards (WCAG 2.1 AA).</p><p>Initial funding for this work was provided by NSF grants #0231270 and/or #0404988.</p><p>Permission is granted to use these files for noncommercial purposes as long as they remain unmodified.</p>"
+      }
+    }
+  },
+
+  "siderealSolarTime": {
+    "meta": {
+      "title": "Sidereal and Solar Time Simulator",
+      "version": "2.0 (Accessible HTML5)"
+    },
+    "masthead": {
+      "help": {
+        "title": "Help and Instructions",
+        "content": ""
+      },
+      "about": {
+        "title": "About this Simulator",
+        "content": "<p>This simulator is part of the <a href=\"https://astro.unl.edu/naap/\">Nebraska Astronomy Applet Project</a>. Supporting materials and additional astronomy education resources can be found there.</p><p>This simulator has been modernized by a AAS Task Force to meet modern web accessibility standards (WCAG 2.1 AA).</p><p>Initial funding for this work was provided by NSF grants #0231270 and/or #0404988.</p><p>Permission is granted to use these files for noncommercial purposes as long as they remain unmodified.</p>"
+      }
+    }
+  },
+
+  "smallAngleDemo": {
+    "meta": {
+      "title": "Small-Angle Approximation Demonstrator",
+      "version": "2.0"
+    },
+    "masthead": {
+      "help": {
+        "title": "Help and Instructions",
+        "content": ""
+      },
+      "about": {
+        "title": "About this Demonstrator",
+        "content": "<p>For additional astronomy education materials please visit <a href=\"https://astro.unl.edu/\">Astronomy Education</a> at the University of Nebraska-Lincoln.</p><p>This demonstrator has been modernized by a AAS Task Force to meet modern web accessibility standards (WCAG 2.1 AA).</p><p>Initial funding for this work was provided by NSF grants #0231270 and/or #0404988.</p><p>Permission is granted to use these files for noncommercial purposes as long as they remain unmodified.</p>"
+      }
+    }
+  }
+}
+

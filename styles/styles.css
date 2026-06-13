@@ -1,0 +1,280 @@
+/* ----------------------------------------------------------------------------
+   Sidereal and Solar Time Simulator -- sim-specific styles only.
+   Shared palette, layout, controls, and focus handling come from
+   foundation/kl-unl.css (copied in unchanged). Everything here is layered on top;
+   the foundation files are never edited. Relative units (rem/%/clamp) so the
+   layout flexes from desktop down to phone portrait and stays usable at 200% zoom.
+---------------------------------------------------------------------------- */
+
+/* Verdana is the original's embedded font; self-hosted only for the small am/pm
+   labels still drawn inside the solar-clock canvas (all HTML text uses the
+   foundation font). Regular = 1_Verdana, Bold = 3_Verdana from the decompile. */
+@font-face {
+  font-family: "Verdana";
+  src: url("../assets/fonts/Verdana.ttf") format("truetype");
+  font-weight: normal; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Verdana";
+  src: url("../assets/fonts/Verdana-Bold.ttf") format("truetype");
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+/* Aries (U+2648) glyph, self-hosted (3 KB subset from the original's Lucida Sans
+   Unicode) so the "days since ♈" readout renders identically on every OS/browser
+   -- Segoe UI Symbol / Lucida / Arial Unicode are Windows-only and macOS/Safari
+   would otherwise substitute an emoji or a different glyph. unicode-range limits
+   this face to the Aries codepoint; all other characters use the normal stack. */
+@font-face {
+  font-family: "AriesGlyph";
+  src: url("../assets/fonts/aries.ttf") format("truetype");
+  font-display: swap;
+  unicode-range: U+2648;
+}
+
+/* Body copy noticeably larger than default, in rem so it tracks the user's browser
+   font setting (WCAG 1.4.4). */
+body { font-size: 1.125rem; }
+
+/* Panel titles share the foundation's 1rem content inset (left padding) so each
+   heading lines up exactly with its description and the controls below it. */
+.panel__heading { font-size: 1.25rem; }
+.control-fieldset__legend { font-size: 1.05rem; }
+/* Both subtitles reserve the same height so the two clocks start at the same Y
+   (the sidereal description is longer and wraps to more lines). */
+.sim-subtitle { font-style: italic; min-height: 4.2em; }
+
+/* Left-align all panel headings, subtitles, legends, labels, and help text. */
+.panel__heading,
+.sim-subtitle,
+.control-fieldset__legend,
+.control-row__label,
+.sim-orbit-help { text-align: left; }
+
+.sim-full { grid-column: 1 / -1; margin-bottom: 0.5rem; min-width: 0; }
+
+/* ---- Responsive panel grid ------------------------------------------------
+   Smaller screens (mobile-first, the default below): Orbital View on TOP (the
+   high-priority panel), Solar | Sidereal side by side, Day of Year at the bottom.
+   Desktop: the original arrangement -- compact Solar | Sidereal stacked over
+   Day of Year on the left, a WIDE Orbital View on the right. Never edits the
+   foundation; carries the layout below the foundation's own 56rem breakpoint. */
+.sim-grid {
+  display: grid;
+  gap: 0.5rem;
+  align-items: start;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "orbit  orbit"
+    "solar  sidereal"
+    "day    day";
+}
+.sim-grid > .panel { margin-bottom: 0; min-width: 0; }
+.sim-area-solar    { grid-area: solar; }
+.sim-area-sidereal { grid-area: sidereal; }
+.sim-area-day      { grid-area: day; }
+.sim-area-orbit    { grid-area: orbit; }
+.sim-area-solar, .sim-area-sidereal { align-self: stretch; }
+
+/* Very narrow phone portrait: single stacked column so the two clock panels are
+   never crushed (Orbit, Solar, Sidereal, Day -- reading order). */
+@media (max-width: 30rem) {
+  .sim-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "orbit"
+      "solar"
+      "sidereal"
+      "day";
+  }
+}
+
+/* Desktop ("web"): Solar | Sidereal | Orbital View in one top row (all the SAME
+   height), with Day of Year spanning the FULL width underneath. */
+@media (min-width: 70rem) {
+  .sim-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2.2fr);
+    grid-template-areas:
+      "solar    sidereal  orbit"
+      "day      day       day";
+    align-items: stretch;            /* the three top panels share one height */
+  }
+  /* Orbital View: a perfect SQUARE that fits the wide column and the row height
+     (so the orbit/Earth/Sun stay circular). aspect-ratio keeps it square; it is
+     clamped by max-height so it never exceeds the time-box row height. The higher
+     specificity here beats the base .sim-orbit-stage rule (which sets max-width). */
+  .sim-area-orbit { display: flex; flex-direction: column; }
+  .sim-orbit-wrap { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; min-height: 0; }
+  .sim-area-orbit .sim-orbit-stage {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    max-width: 100%;
+    max-height: 100%;
+    margin: 0;
+  }
+  /* Full-width Day of Year -> its four season buttons sit in one row.
+     (Higher specificity than the base 2-col rule, which appears later in source.) */
+  .sim-area-day .sim-season-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ============================================================================
+   CLOCKS -- reused exported clock-face bitmap + code-drawn hands on canvas.
+   ========================================================================== */
+.sim-clock-wrap { line-height: 0; padding: 0.5rem 1rem 0.25rem; }
+.sim-clock {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 17rem;
+  margin: 0 auto;
+  touch-action: none;            /* dragging a hand must not scroll the page */
+  cursor: pointer;
+}
+
+/* ---- The "... days since Aries" readout (plain text, left-aligned) ---- */
+.sim-readout-line {
+  padding: 0.25rem 1rem 0.5rem;   /* 1rem left inset matches heading + controls */
+  text-align: left;
+  min-height: 1.4em;              /* reserve one line so the rows below line up */
+}
+.sim-readout__text {
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  /* AriesGlyph (via unicode-range) renders the ♈ on every OS; all other glyphs
+     fall through to the foundation's own font stack. */
+  font-family: "AriesGlyph", "Sans-Serif", Arial, Helvetica, sans-serif;
+}
+
+/* ============================================================================
+   ORBIT VIEW -- code-drawn Sun/orbit + reused Earth & figure bitmaps on canvas,
+   with MathJax sidereal-hour labels positioned around the ring (HTML, zoomable).
+   ========================================================================== */
+.sim-orbit-wrap { padding: 0.5rem 1rem 0.5rem; }
+.sim-orbit-stage {
+  position: relative;
+  width: 100%;
+  max-width: 42rem;              /* wide -- the high-priority panel */
+  margin: 0 auto;
+  aspect-ratio: 1 / 1;           /* square box; labels positioned relative to it */
+}
+.sim-orbit {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #000000;
+  border: var(--border-width, 1px) solid var(--border-color, #767676);
+  touch-action: none;
+  cursor: grab;
+}
+.sim-orbit:active { cursor: grabbing; }
+
+.sim-orbit-label {
+  position: absolute;
+  color: #ffffff;
+  font-size: 1rem;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  pointer-events: none;          /* labels never block dragging */
+  white-space: nowrap;
+}
+.sim-orbit-label mjx-container { color: #ffffff !important; }
+.sim-orbit-label--top    { left: 50%;  top: 3%; }
+.sim-orbit-label--bottom { left: 50%;  top: 97%; }
+.sim-orbit-label--left   { left: 3.5%; top: 50%; }
+.sim-orbit-label--right  { left: 96.5%; top: 50%; }
+.sim-orbit-sub { display: block; font-size: 0.85rem; margin-top: 0.15rem; }
+
+.sim-orbit-help { padding: 0.25rem 1rem 0.75rem; }
+
+/* ============================================================================
+   DAY OF YEAR slider -- native range (full keyboard support) + month ticks.
+   ========================================================================== */
+.sim-dayslider { padding: 0 1rem 0.5rem; }
+.sim-dayslider__label { display: block; margin-bottom: 0.5rem; }
+.sim-dayslider__track { position: relative; padding-top: 1.4rem; }
+.sim-dayslider__aries {
+  position: absolute; left: 0; top: 0;
+  font-size: 1.1rem; transform: translateX(-10%);
+}
+.sim-dayslider__input { width: 100%; }
+.sim-dayslider__months {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--foreground-color, #1a1a1a);
+}
+.sim-dayslider__months span {
+  flex: 1 0 0;
+  text-align: center;
+  border-left: 1px solid #bbb;
+}
+.sim-dayslider__months span:first-child { border-left: none; }
+
+/* ============================================================================
+   SLIDERS (time of day + day of year) -- native range, large, keyboard ready.
+   ========================================================================== */
+.sim-slider-row { grid-template-columns: 1fr; gap: 0.35rem; }
+.sim-slider-row .control-row__label { display: block; }
+.sim-slider {
+  width: 100%;
+  min-width: 0;
+  height: 2.25rem;
+  margin: 0;
+  cursor: pointer;
+}
+
+/* ============================================================================
+   BUTTONS -- KL-UNL blue box, white text, large and legible. >=44px targets.
+   ========================================================================== */
+.sim-btn {
+  min-height: 2.75rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--button-foreground-color, #ffffff);
+  background: var(--button-background-color, #005a9c);
+  border: var(--border-width, 1px) solid var(--border-color, #767676);
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1.15;
+}
+.sim-btn:hover,
+.sim-btn:focus { filter: brightness(0.9); }
+.sim-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* MathJax glyph inside a button inherits the white button text color. */
+.sim-math-btn mjx-container { color: inherit !important; font-size: 1.05em !important; margin: 0 !important; }
+
+/* Highlighted state: a control is "active" when the clock is exactly at that time.
+   The button fill color is left unchanged; selection is shown with a border ring
+   (box-shadow, so there is no layout shift) + a check mark + aria-pressed. */
+.sim-goto[aria-pressed="true"],
+.sim-season[aria-pressed="true"] {
+  box-shadow: 0 0 0 3px var(--foreground-color, #1a1a1a);
+}
+.sim-goto[aria-pressed="true"]::after,
+.sim-season[aria-pressed="true"]::after {
+  content: " \2713";             /* check mark -> state cue that doesn't rely on color */
+  font-weight: 900;
+}
+
+.sim-goto-grid, .sim-season-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+.sim-goto-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.sim-goto-row .sim-goto { flex: 1 1 3rem; }
+.sim-season { min-height: 3.4rem; }
+
+/* ============================================================================
+   RESPONSIVE -- carry the layout down to phone portrait; honor reduced motion.
+   ========================================================================== */
+@media (max-width: 34rem) {
+  .sim-subtitle { min-height: 0; }
+  .sim-goto-grid, .sim-season-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sim-orbit, .sim-clock { scroll-behavior: auto; }
+}

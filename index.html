@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sidereal and Solar Time Simulator</title>
+
+  <!-- KL-UNL shared foundation (copied in unchanged) -->
+  <link href="foundation/kl-unl.css" type="text/css" rel="stylesheet" media="all">
+  <!-- Sim-specific styles only -->
+  <link href="styles/styles.css" type="text/css" rel="stylesheet" media="all">
+</head>
+<body>
+  <a class="sr-only sr-only-focusable" href="#solar-heading">Skip to controls</a>
+
+  <div class="app-shell">
+
+    <!-- Title bar + Reset / About come from the shared masthead component.
+         (This sim has no Help text, so the Help button is suppressed via contents.json.) -->
+    <kl-unl-masthead sim-id="siderealSolarTime" json-url="foundation/contents.json"></kl-unl-masthead>
+
+    <main class="app-layout">
+
+      <!-- One responsive grid mirrors the original panel grouping & reading order:
+           Solar Time | Sidereal Time (top), Day of Year (below), Orbit View (right).
+           Collapses to a single stacked column on phone portrait. -->
+      <div class="sim-grid sim-full">
+
+        <!-- ================= SOLAR TIME ================= -->
+        <section class="panel sim-area-solar" aria-labelledby="solar-heading">
+          <h2 id="solar-heading" class="panel__heading">Solar Time</h2>
+          <p class="panel__help sim-subtitle">ordinary clock time, based on the position of the Sun in the sky</p>
+
+          <div class="panel__canvas-wrap sim-clock-wrap">
+            <canvas id="solar-canvas" class="sim-clock" width="258" height="258"
+                    role="img" aria-label="Solar 24-hour clock"
+                    aria-describedby="solar-clock-desc"></canvas>
+          </div>
+          <p id="solar-clock-desc" class="sr-only" aria-live="polite"></p>
+
+          <div class="sim-readout-line">
+            <span id="solar-days-eqn" class="sim-readout__text" aria-hidden="true"></span>
+            <span id="solar-days-sr" class="sr-only"></span>
+          </div>
+
+          <fieldset class="control-fieldset">
+            <legend class="control-fieldset__legend">solar time of day</legend>
+            <div class="control-row sim-slider-row">
+              <label class="control-row__label" for="solar-time-range">drag the clock hands, or set the time of day:</label>
+              <input class="sim-slider" type="range" id="solar-time-range"
+                     min="0" max="24" step="0.25" value="12" aria-describedby="solar-days-sr">
+            </div>
+          </fieldset>
+
+          <fieldset class="control-fieldset">
+            <legend class="control-fieldset__legend"><span class="sim-leg">advance by solar day:</span></legend>
+            <div class="button-row">
+              <button type="button" class="button sim-btn sim-math-btn" id="adv-solar-1"
+                      aria-label="advance by one solar day"><span data-tex="+1"></span></button>
+              <button type="button" class="button sim-btn sim-math-btn" id="adv-solar-10"
+                      aria-label="advance by ten solar days"><span data-tex="+10"></span></button>
+            </div>
+          </fieldset>
+
+          <fieldset class="control-fieldset">
+            <legend class="control-fieldset__legend">go to:</legend>
+            <div class="control-grid sim-goto-grid">
+              <button type="button" class="button sim-btn sim-goto" id="goto-midnight" aria-pressed="false">midnight</button>
+              <button type="button" class="button sim-btn sim-goto" id="goto-noon" aria-pressed="false">noon</button>
+              <button type="button" class="button sim-btn sim-goto" id="goto-sunrise" aria-pressed="false">sunrise</button>
+              <button type="button" class="button sim-btn sim-goto" id="goto-sunset" aria-pressed="false">sunset</button>
+            </div>
+          </fieldset>
+        </section>
+
+        <!-- ================= SIDEREAL TIME ================= -->
+        <section class="panel sim-area-sidereal" aria-labelledby="sidereal-heading">
+          <h2 id="sidereal-heading" class="panel__heading">Sidereal Time</h2>
+          <p class="panel__help sim-subtitle">&ldquo;astronomer&rsquo;s time&rdquo;, based on the right ascension of a star on the observer&rsquo;s meridian</p>
+
+          <div class="panel__canvas-wrap sim-clock-wrap">
+            <canvas id="sidereal-canvas" class="sim-clock" width="258" height="258"
+                    role="img" aria-label="Sidereal 24-hour clock"
+                    aria-describedby="sidereal-clock-desc"></canvas>
+          </div>
+          <p id="sidereal-clock-desc" class="sr-only" aria-live="polite"></p>
+
+          <div class="sim-readout-line">
+            <span id="sidereal-days-eqn" class="sim-readout__text" aria-hidden="true"></span>
+            <span id="sidereal-days-sr" class="sr-only"></span>
+          </div>
+
+          <fieldset class="control-fieldset">
+            <legend class="control-fieldset__legend">sidereal time of day</legend>
+            <div class="control-row sim-slider-row">
+              <label class="control-row__label" for="sidereal-time-range">drag the clock hands, or set the sidereal time:</label>
+              <input class="sim-slider" type="range" id="sidereal-time-range"
+                     min="0" max="24" step="0.25" value="0" aria-describedby="sidereal-days-sr">
+            </div>
+          </fieldset>
+
+          <fieldset class="control-fieldset">
+            <legend class="control-fieldset__legend"><span class="sim-leg">advance by sidereal day:</span></legend>
+            <div class="button-row">
+              <button type="button" class="button sim-btn sim-math-btn" id="adv-sid-1"
+                      aria-label="advance by one sidereal day"><span data-tex="+1"></span></button>
+              <button type="button" class="button sim-btn sim-math-btn" id="adv-sid-10"
+                      aria-label="advance by ten sidereal days"><span data-tex="+10"></span></button>
+            </div>
+          </fieldset>
+
+          <fieldset class="control-fieldset">
+            <legend class="control-fieldset__legend">go to:</legend>
+            <div class="button-row sim-goto-row">
+              <button type="button" class="button sim-btn sim-goto sim-math-btn" id="goto-0h"
+                      aria-pressed="false" aria-label="go to 0 hours sidereal"><span data-tex="0^{\rm h}"></span></button>
+              <button type="button" class="button sim-btn sim-goto sim-math-btn" id="goto-6h"
+                      aria-pressed="false" aria-label="go to 6 hours sidereal"><span data-tex="6^{\rm h}"></span></button>
+              <button type="button" class="button sim-btn sim-goto sim-math-btn" id="goto-12h"
+                      aria-pressed="false" aria-label="go to 12 hours sidereal"><span data-tex="12^{\rm h}"></span></button>
+              <button type="button" class="button sim-btn sim-goto sim-math-btn" id="goto-18h"
+                      aria-pressed="false" aria-label="go to 18 hours sidereal"><span data-tex="18^{\rm h}"></span></button>
+            </div>
+          </fieldset>
+        </section>
+
+        <!-- ================= DAY OF YEAR ================= -->
+        <section class="panel sim-area-day" aria-labelledby="day-heading">
+          <h2 id="day-heading" class="panel__heading">Day of Year</h2>
+
+          <fieldset class="control-fieldset">
+            <legend class="control-fieldset__legend">day of year (days since the vernal equinox)</legend>
+            <div class="sim-dayslider">
+              <label class="control-row__label sim-dayslider__label" for="day-range">
+                drag to change the day (hold <kbd>Shift</kbd> while dragging the globe to step by sidereal days):
+              </label>
+              <div class="sim-dayslider__track">
+                <span class="sim-dayslider__aries" aria-hidden="true"><span data-tex="\text{♈}"></span></span>
+                <input class="sim-slider sim-dayslider__input" type="range" id="day-range"
+                       min="0" max="365" step="1" value="0" aria-describedby="solar-days-sr">
+                <div class="sim-dayslider__months" aria-hidden="true"></div>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="control-fieldset">
+            <legend class="control-fieldset__legend">go to:</legend>
+            <div class="control-grid sim-season-grid">
+              <button type="button" class="button sim-btn sim-season sim-math-btn" id="goto-ve" aria-pressed="false"
+                      aria-label="go to the vernal equinox">vernal<br>equinox&nbsp;<span data-tex="(\text{♈})"></span></button>
+              <button type="button" class="button sim-btn sim-season" id="goto-ss" aria-pressed="false"
+                      aria-label="go to the summer solstice">summer<br>solstice</button>
+              <button type="button" class="button sim-btn sim-season" id="goto-ae" aria-pressed="false"
+                      aria-label="go to the autumnal equinox">autumnal<br>equinox</button>
+              <button type="button" class="button sim-btn sim-season" id="goto-ws" aria-pressed="false"
+                      aria-label="go to the winter solstice">winter<br>solstice</button>
+            </div>
+          </fieldset>
+        </section>
+
+        <!-- ================= ORBIT VIEW ================= -->
+        <section class="panel sim-area-orbit" aria-labelledby="orbit-heading">
+          <h2 id="orbit-heading" class="panel__heading">Orbital View</h2>
+          <div class="panel__canvas-wrap sim-orbit-wrap">
+            <div class="sim-orbit-stage">
+              <canvas id="orbit-canvas" class="sim-orbit" width="520" height="520"
+                      role="img" aria-label="Top-down view of Earth orbiting the Sun"
+                      aria-describedby="orbit-desc"></canvas>
+              <!-- MathJax sidereal-hour labels around the orbit ring (typeset, not canvas-baked). -->
+              <span class="sim-orbit-label sim-orbit-label--top">
+                <span data-tex="0^{\rm h}"></span>
+                <span class="sim-orbit-sub" data-tex="\text{vernal equinox (♈)}"></span>
+              </span>
+              <span class="sim-orbit-label sim-orbit-label--left"><span data-tex="6^{\rm h}"></span></span>
+              <span class="sim-orbit-label sim-orbit-label--bottom"><span data-tex="12^{\rm h}"></span></span>
+              <span class="sim-orbit-label sim-orbit-label--right"><span data-tex="18^{\rm h}"></span></span>
+            </div>
+          </div>
+          <p class="panel__help sim-orbit-help">
+            Drag the <strong>globe</strong> around its orbit to change the day; drag the
+            <strong>figure</strong> on the globe to change the time of day. Hold <kbd>Shift</kbd>
+            while dragging the globe to step by sidereal days. Keyboard users can use the sliders
+            and buttons in the panels at left.
+          </p>
+          <p id="orbit-desc" class="sr-only" aria-live="polite"></p>
+        </section>
+
+      </div><!-- /sim-grid -->
+
+      <!-- Global status announcer (state changes announced on commit, not per tick). -->
+      <p id="sr-status" class="sr-only" aria-live="polite"></p>
+
+    </main>
+  </div>
+
+  <!-- Foundation equation helper (copied in unchanged) -->
+  <script src="foundation/kl-unl.js"></script>
+  <!-- Shared masthead custom element (copied in unchanged) -->
+  <script src="foundation/kl-unl-masthead.js"></script>
+
+  <!-- MathJax (vendored locally; SVG output, no CDN/fonts). Right-click any symbol ->
+       MathJax menu ("Show Math As" -> TeX / MathML). Menu is left enabled. -->
+  <script>
+    window.MathJax = {
+      loader: { failed: function (err) { console.warn('[MathJax] optional component not vendored:', err.message); } },
+      tex: { inlineMath: [['\\(', '\\)'], ['$', '$']] },
+      svg: { fontCache: 'local' },
+      options: { enableMenu: true, menuOptions: { settings: { assistiveMml: false } } }
+    };
+  </script>
+  <script src="assets/mathjax/tex-mml-svg.js"></script>
+
+  <!-- Sim logic -->
+  <script src="simulation.js"></script>
+</body>
+</html>
