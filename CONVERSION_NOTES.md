@@ -91,6 +91,25 @@ entries' accessibility boilerplate.
   (a deviation from the pipeline's "all math via MathJax" rule). The remaining math —
   the `0ʰ/6ʰ/12ʰ/18ʰ` superscripts, the `+1`/`+10` advance-button glyphs, and the ♈
   markers on the orbit and slider — is still MathJax. Advance buttons read `+1` / `+10`.
+- **Button highlight = color change (like the original).** The "go to" / season buttons
+  highlight with a background color change (plus a border ring + `aria-pressed`) when the
+  clock is exactly at that time/season. (An earlier check-mark approach was dropped because
+  adding text resized/shifted the buttons.)
+- **Season-button notches restored.** The equinox/solstice buttons have an upward
+  triangular notch pointing to that point on the day-of-year calendar. The month labels
+  are placed at their true positions (i/12) and the four buttons span the slider, so each
+  notch lines up with its month: vernal → March, summer → June, autumnal → September,
+  winter → December (verified within ~6px). Shown from tablet width up; below that the
+  buttons stack and the notches are hidden.
+- **The ♈ glyph is plain text in a vendored font, not MathJax** (everywhere it appears:
+  readouts, vernal button, orbit label, slider marker). MathJax renders ♈ via the system
+  serif font, which is blank on systems missing that glyph; the 3 KB `aries.ttf` subset
+  (scoped via `unicode-range: U+2648`) renders it identically on every OS.
+- **Keyboard-operable clock hands (usability add).** Each clock hand is a focusable
+  `role="slider"` grip in the Tab order; clicking a hand focuses it and arrow keys rotate
+  it (counter/clockwise). It mutates the same `solarTime` as the pointer drag.
+- **Flash/seizure safety.** Fast-spinning hands and the orbiting figure fade with rotation
+  speed so a quick sweep is a soft blur, not a strobe (WCAG 2.3.1).
 - **Reduced motion.** With `prefers-reduced-motion: reduce`, all button animations use
   duration 0 (the end state is shown instantly). There is no continuous/looping motion
   in this sim (the longest animation is 2 s, user-initiated), so no Pause control is

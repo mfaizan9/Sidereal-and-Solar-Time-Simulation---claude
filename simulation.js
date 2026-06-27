@@ -283,7 +283,7 @@
     return ctx;
   }
 
-  function drawClock(canvas, fractionOfDay, showAmPm) {
+  function drawClock(canvas, fractionOfDay, showAmPm, rate) {
     var ctx = canvas.getContext("2d");
     var dpr = window.devicePixelRatio || 1;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -295,20 +295,31 @@
 
     var minRot = (((fractionOfDay * 24) % 1) + 1) % 1 * 360;   // AS: ((arg*24)%1)*360
     var hourRot = (((fractionOfDay % 1) + 1) % 1) * 360;       // AS: arg*360
-    drawHand(ctx, minRot, CLOCK.minLen, 4.5, "#6f6f6f");       // minute hand
-    drawHand(ctx, hourRot, CLOCK.hourLen, 8, "#3a3a3a");       // hour hand
+    // Fade a hand while it spins fast so the rapid sweep reads as a soft blur and
+    // cannot strobe/flash (WCAG 2.3.1). rate is in days/sec; the minute hand turns
+    // 24x per day, the hour hand 1x.
+    drawHand(ctx, minRot, CLOCK.minLen, 4.5, "#6f6f6f", spinAlpha((rate || 0) * 24));
+    drawHand(ctx, hourRot, CLOCK.hourLen, 8, "#3a3a3a", spinAlpha(rate || 0));
     // center pivot (gold), matching the original
     ctx.beginPath(); ctx.arc(CLOCK.cx, CLOCK.cy, 5.5, 0, 2 * Math.PI);
     ctx.fillStyle = "#b08a00"; ctx.fill();
   }
-  function drawHand(ctx, rotDeg, len, width, color) {
+  function drawHand(ctx, rotDeg, len, width, color, alpha) {
     ctx.save();
+    ctx.globalAlpha = (alpha === undefined ? 1 : alpha);
     ctx.translate(CLOCK.cx, CLOCK.cy);
     ctx.rotate(rotDeg * Math.PI / 180);   // rotation 0 = pointing up (12am / 0h)
     ctx.lineCap = "round";
     ctx.lineWidth = width; ctx.strokeStyle = color;
     ctx.beginPath(); ctx.moveTo(0, 8); ctx.lineTo(0, -len); ctx.stroke();
     ctx.restore();
+  }
+  // Map a spinning element's speed (revolutions per second) to opacity: solid when
+  // slow, faint when fast, so quick rotation is a soft blur instead of a strobe.
+  function spinAlpha(revPerSec) {
+    if (revPerSec <= 2) return 1;
+    if (revPerSec >= 6) return 0.16;
+    return 1 - (revPerSec - 2) / 4 * 0.84;
   }
   function drawAmPm(ctx) {
     // Solar clock only (AS: siderealAnalogClock.showAmPmLabels = false).
@@ -341,7 +352,7 @@
     return GLOBE_ROT_OFFSET - (((solar % 1) + 1) % 1) * 360 - angle * (180 / Math.PI);
   }
 
-  function drawOrbit(canvas) {
+  function drawOrbit(canvas, rate) {
     var ctx = canvas.getContext("2d");
     var dpr = window.devicePixelRatio || 1;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -371,21 +382,27 @@
       ctx.fillStyle = "#5a9a3a"; ctx.fill();
     }
     if (img.figure && img.figure.complete) {
+      // The figure orbits the globe ~1 turn per solar day; fade it when spinning
+      // fast so it doesn't strobe during quick advances (WCAG 2.3.1).
+      ctx.globalAlpha = spinAlpha(rate || 0);
       ctx.drawImage(img.figure, -ORBIT.figW / 2, -(ORBIT.globeR + ORBIT.figH), ORBIT.figW, ORBIT.figH);
+      ctx.globalAlpha = 1;
     }
     ctx.restore();
   }
 
   // ---- formatting (matches AS number formatting; toFixed(3) on readouts) ----
   function fmt3(n) { return n.toFixed(3); }
+  // These return SPOKEN strings (units as words: "hours", "minutes") for ARIA only --
+  // they are never shown on screen. Screen readers skip bare ":" time glyphs and unit
+  // symbols, so the spoken value must name the units explicitly (audio.txt requirement).
   function solarTODLabel() {
-    // 12-hour clock label for the current solar time of day
     var f = frac01(tm.latestSolarTime), h = f * 24;
     var hh = Math.floor(h + 1e-9), mm = Math.round((h - hh) * 60);
     if (mm === 60) { mm = 0; hh = (hh + 1) % 24; }
-    var suffix = hh < 12 ? "am" : "pm";
+    var suffix = hh < 12 ? "AM" : "PM";
     var h12 = hh % 12; if (h12 === 0) h12 = 12;
-    var label = h12 + ":" + (mm < 10 ? "0" : "") + mm + " " + suffix;
+    var label = h12 + " hours " + mm + " minutes " + suffix;
     if (mm === 0 && hh === 0) label += " (midnight)";
     else if (mm === 0 && hh === 12) label += " (noon)";
     return label;
@@ -394,7 +411,7 @@
     var f = frac01(tm.latestSiderealTime), h = f * 24;
     var hh = Math.floor(h + 1e-9), mm = Math.round((h - hh) * 60);
     if (mm === 60) { mm = 0; hh = (hh + 1) % 24; }
-    return (hh < 10 ? "0" : "") + hh + ":" + (mm < 10 ? "0" : "") + mm + " sidereal";
+    return hh + " hours " + mm + " minutes sidereal time";
   }
 
   // ---- Readouts: plain HTML text (NOT MathJax, by request). The Aries glyph
@@ -409,12 +426,12 @@
     if (sd !== lastSolarStr) {
       lastSolarStr = sd;
       $("solar-days-eqn").textContent = "solar days since " + ARIES + " = " + sd;
-      $("solar-days-sr").textContent = "Solar days since the vernal equinox: " + sd + ". Solar time of day " + solarTODLabel() + ".";
+      $("solar-days-sr").textContent = "Solar days since the vernal equinox: " + sd + " days. Solar time of day " + solarTODLabel() + ".";
     }
     if (rd !== lastSidStr) {
       lastSidStr = rd;
       $("sidereal-days-eqn").textContent = "sidereal days since " + ARIES + " = " + rd;
-      $("sidereal-days-sr").textContent = "Sidereal days since the vernal equinox: " + rd + ". Sidereal time of day " + siderealTODLabel() + ".";
+      $("sidereal-days-sr").textContent = "Sidereal days since the vernal equinox: " + rd + " days. Sidereal time of day " + siderealTODLabel() + ".";
     }
   }
 
@@ -448,21 +465,61 @@
 
   // ---- canvas image descriptions (informative, for screen readers) ---------
   function syncCanvasDescriptions() {
-    $("solar-clock-desc").textContent = "Solar clock reads " + solarTODLabel() + ".";
-    $("sidereal-clock-desc").textContent = "Sidereal clock reads " + siderealTODLabel() + ".";
+    $("solar-clock-desc").textContent =
+      "Twenty-four-hour solar clock reading " + solarTODLabel() + ".";
+    $("sidereal-clock-desc").textContent =
+      "Twenty-four-hour sidereal clock reading " + siderealTODLabel() + ".";
     $("orbit-desc").textContent =
-      "Earth is " + fmt3(tm.latestSolarDaysSinceLastVernalEquinox) +
-      " solar days past the vernal equinox; the standing figure shows local solar time " + solarTODLabel() + ".";
+      "Top-down view of Earth orbiting the Sun. Earth is " +
+      fmt3(tm.latestSolarDaysSinceLastVernalEquinox) +
+      " solar days past the vernal equinox; the observer figure on Earth shows local solar time " +
+      solarTODLabel() + "; sidereal time " + siderealTODLabel() + ".";
+  }
+
+  // Spin speed (solar days/sec) measured between renders, used to fade fast-spinning
+  // art so it can't strobe. Idle gaps (dt too large) count as no spin.
+  var _spinLastT = 0, _spinLastSolar = null;
+  function solarSpinRate() {
+    var t = now(), rate = 0;
+    if (_spinLastSolar !== null) {
+      var dt = (t - _spinLastT) / 1000;
+      if (dt > 0 && dt < 0.5) rate = Math.abs(tm.latestSolarTime - _spinLastSolar) / dt;
+    }
+    _spinLastT = t; _spinLastSolar = tm.latestSolarTime;
+    return rate;
   }
 
   // ---- the single render(): canvas + DOM + readouts -------------------------
   function render() {
-    if (solarCanvas) drawClock(solarCanvas, tm.latestSolarTime, true);
-    if (sidCanvas) drawClock(sidCanvas, tm.latestSiderealTime, false);
-    if (orbitCanvas) drawOrbit(orbitCanvas);
+    var rate = solarSpinRate();           // solar days per second
+    if (solarCanvas) drawClock(solarCanvas, tm.latestSolarTime, true, rate);
+    if (sidCanvas) drawClock(sidCanvas, tm.latestSiderealTime, false, rate * tm.siderealPerSolar);
+    if (orbitCanvas) drawOrbit(orbitCanvas, rate);
     syncReadouts();
     syncControls();
     syncCanvasDescriptions();
+    syncHandGrips();
+  }
+
+  // ---- focusable hand grips (keyboard-operable clock hands) ------------------
+  function gripRot(timeVal, which) {
+    var f = frac01(timeVal);
+    return which === "hour" ? f * 360 : (((f * 24) % 1) + 1) % 1 * 360;
+  }
+  function setGrip(grip, rotDeg, valuetext, valuenow) {
+    if (!grip) return;
+    grip.style.transform = "translateX(-50%) rotate(" + rotDeg.toFixed(2) + "deg)";
+    grip.setAttribute("aria-valuetext", valuetext);
+    grip.setAttribute("aria-valuenow", String(valuenow));
+  }
+  function syncHandGrips() {
+    var sf = frac01(tm.latestSolarTime) * 24, rf = frac01(tm.latestSiderealTime) * 24;
+    var sH = Math.floor(sf), sM = Math.round((sf - Math.floor(sf)) * 60);
+    var rH = Math.floor(rf), rM = Math.round((rf - Math.floor(rf)) * 60);
+    setGrip($("solar-hour-grip"), gripRot(tm.latestSolarTime, "hour"), "Solar clock hour hand, " + solarTODLabel(), sH);
+    setGrip($("solar-minute-grip"), gripRot(tm.latestSolarTime, "minute"), "Solar clock minute hand, " + solarTODLabel(), sM);
+    setGrip($("sidereal-hour-grip"), gripRot(tm.latestSiderealTime, "hour"), "Sidereal clock hour hand, " + siderealTODLabel(), rH);
+    setGrip($("sidereal-minute-grip"), gripRot(tm.latestSiderealTime, "minute"), "Sidereal clock minute hand, " + siderealTODLabel(), rM);
   }
 
   // ---- aria-live announcer (on commit, not per animation tick) -------------
@@ -477,13 +534,22 @@
     $("sr-status").textContent = bits.join(" ");
   }
 
+  // Debounced announce: every drag move / slider step commits the time immediately
+  // (dur 0), which would otherwise fire the live region on every tick. Coalesce those
+  // into a single polite announcement ~350 ms after motion stops (commit-time, no flood).
+  var _announceTimer = 0;
+  function scheduleAnnounce() {
+    if (_announceTimer) clearTimeout(_announceTimer);
+    _announceTimer = setTimeout(function () { _announceTimer = 0; announce(); }, 350);
+  }
+
   // ---- responder interface (Main.as) ---------------------------------------
   tm.responder = {
     onTimeMasterModeChanged: function () { },
     onTimeMasterAnimationStart: function () { },
     onTimeMasterAnimationStop: function () { },
     onTimeMasterAnimationUpdate: function () { render(); },
-    onTimeMasterTimeChanged: function () { render(); announce(); }
+    onTimeMasterTimeChanged: function () { render(); scheduleAnnounce(); }
   };
 
   /* ==========================================================================
@@ -559,7 +625,7 @@
   // The drag picks whichever hand's tip is nearer the pointer, then reproduces
   // AnalogClockHand: offset = pointerAngle - rotation; delta normalized; the
   // handler converts degrees to a solar/sidereal time delta.
-  function makeClockDrag(canvas, isSidereal) {
+  function makeClockDrag(canvas, isSidereal, grips) {
     var drag = null;
     function timeVal() { return isSidereal ? tm.latestSiderealTime : tm.latestSolarTime; }
     function handRot(which) {
@@ -584,6 +650,8 @@
       var mx = p.x - CLOCK.cx, my = p.y - CLOCK.cy;
       applyDelta(which, 0);  // AS rotationChangeHandler(0): stops any animation
       drag = { which: which, offset: pointerAngle(mx, my) - handRot(which) };
+      // Clicking a hand moves keyboard focus to it, so arrow keys drive it next.
+      if (grips && grips[which]) grips[which].focus();
       canvas.setPointerCapture(ev.pointerId); ev.preventDefault();
     });
     canvas.addEventListener("pointermove", function (ev) {
@@ -594,7 +662,7 @@
       applyDelta(drag.which, delta);
       ev.preventDefault();
     });
-    function end(ev) { if (drag) { drag = null; announce(); try { canvas.releasePointerCapture(ev.pointerId); } catch (e) { } } }
+    function end(ev) { if (drag) { drag = null; scheduleAnnounce(); try { canvas.releasePointerCapture(ev.pointerId); } catch (e) { } } }
     canvas.addEventListener("pointerup", end);
     canvas.addEventListener("pointercancel", end);
   }
@@ -612,7 +680,7 @@
       var delta = target - current;
       tm.incrementLatestSolarTime(delta / 24, 0);
     });
-    solarTimeRange.addEventListener("change", announce);
+    solarTimeRange.addEventListener("change", scheduleAnnounce);
 
     // Sidereal time-of-day.
     sidTimeRange.addEventListener("input", function () {
@@ -621,7 +689,7 @@
       var delta = target - current;
       tm.incrementLatestSiderealTime(delta / 24, 0);
     });
-    sidTimeRange.addEventListener("change", announce);
+    sidTimeRange.addEventListener("change", scheduleAnnounce);
 
     // Day of year: arrow keys step the orbital day, like dragging the globe/thumb.
     dayRange.addEventListener("input", function () {
@@ -630,7 +698,38 @@
       var delta = target - current;
       tm.incrementLatestSolarTime(delta, 0);
     });
-    dayRange.addEventListener("change", announce);
+    dayRange.addEventListener("change", scheduleAnnounce);
+  }
+
+  // Snap a clock's time-of-day to a target fraction (used by Home/End on grips).
+  function setHandTODTo(isSidereal, targetFrac) {
+    if (isSidereal) tm.incrementLatestSiderealTime(targetFrac - frac01(tm.latestSiderealTime), 0);
+    else tm.incrementLatestSolarTime(targetFrac - frac01(tm.latestSolarTime), 0);
+  }
+  // Keyboard control for a focusable hand grip: Right/Up = clockwise (advance time),
+  // Left/Down = counter-clockwise (rewind); PageUp/Down larger; Home/End start/end of
+  // the day. Hour grip steps 1 hour, minute grip steps 1 minute. Mutates the same state.
+  function wireHandGrip(grip, isSidereal, which) {
+    if (!grip) return;
+    var arrowH = which === "hour" ? 1 : 1 / 60;          // hours per arrow step
+    var pageH = which === "hour" ? 3 : 15 / 60;          // hours per PageUp/Down
+    grip.addEventListener("keydown", function (ev) {
+      var dir = 0, stepH = arrowH;
+      switch (ev.key) {
+        case "ArrowRight": case "ArrowUp": dir = 1; stepH = arrowH; break;
+        case "ArrowLeft": case "ArrowDown": dir = -1; stepH = arrowH; break;
+        case "PageUp": dir = 1; stepH = pageH; break;
+        case "PageDown": dir = -1; stepH = pageH; break;
+        case "Home": ev.preventDefault(); setHandTODTo(isSidereal, 0); scheduleAnnounce(); return;
+        case "End": ev.preventDefault(); setHandTODTo(isSidereal, 1 - 1 / 1440); scheduleAnnounce(); return;
+        default: return;
+      }
+      ev.preventDefault();
+      var deltaDays = dir * stepH / 24;
+      if (isSidereal) tm.incrementLatestSiderealTime(deltaDays, 0);
+      else tm.incrementLatestSolarTime(deltaDays, 0);
+      scheduleAnnounce();
+    });
   }
 
   function wireButtons() {
@@ -658,10 +757,15 @@
 
   // ---- month tick labels on the day-of-year slider --------------------------
   function buildMonths() {
+    // 13 labels from the vernal equinox (March) around the year back to March, each
+    // placed at its fraction i/12 so March=0, June=1/4, September=1/2, December=3/4
+    // line up with the season buttons' notches below.
     var months = ["M", "A", "M", "J", "J", "A", "S", "O", "N", "D", "J", "F", "M"];
     var wrap = document.querySelector(".sim-dayslider__months");
     if (!wrap) return;
-    wrap.innerHTML = months.map(function (m) { return "<span>" + m + "</span>"; }).join("");
+    wrap.innerHTML = months.map(function (m, i) {
+      return "<span style=\"left:" + (i / 12 * 100).toFixed(4) + "%\">" + m + "</span>";
+    }).join("");
   }
 
   // ---- typeset the static MathJax bits in buttons / labels ------------------
@@ -677,11 +781,40 @@
     }
   }
 
+  // ---- masthead Shadow-DOM .sr-only fallback --------------------------------
+  // The masthead renders inside a Shadow DOM that loads its own copy of
+  // foundation/kl-unl.css via a hardcoded "../foundation/kl-unl.css" link. That
+  // path only resolves when html5/ is the server ROOT (the local-dev case). When
+  // the sim is hosted under a SUBPATH (e.g. GitHub Pages, /<repo>/html5/), the
+  // shadow's stylesheet 404s, so the dialog's `.sr-only` screen-reader text is no
+  // longer hidden and the About/Help text appears twice. The CSS custom-property
+  // VALUES still inherit from the document, so only this one class breaks.
+  //
+  // We can't edit the foundation, so we inject the `.sr-only` rule into the
+  // masthead's open shadow root ourselves. render() replaces the shadow innerHTML,
+  // so a MutationObserver re-injects after every render. Foundation files unchanged.
+  function patchMastheadSrOnly() {
+    var mh = document.querySelector("kl-unl-masthead");
+    if (!mh || !mh.shadowRoot) return;
+    var sr = mh.shadowRoot;
+    var CSS = ".sr-only{position:absolute!important;width:1px;height:1px;padding:0;" +
+      "margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}";
+    function inject() {
+      if (sr.querySelector("#sim-sronly-fallback")) return;
+      var st = document.createElement("style");
+      st.id = "sim-sronly-fallback";
+      st.textContent = CSS;
+      sr.appendChild(st);
+    }
+    inject();
+    try { new MutationObserver(inject).observe(sr, { childList: true }); } catch (e) { }
+  }
+
   // ---- reset (masthead "sim-reset" -> exact initial state) ------------------
   function resetSim() {
     tm.setMode(SIMPLE);   // AS Main.reset(): mode = SIMPLE -> setSolarTime(0.5)
     lastSolarStr = ""; lastSidStr = "";
-    render(); announce();
+    render();             // setMode already scheduled the (single) live-region announce
   }
 
   /* ==========================================================================
@@ -703,13 +836,18 @@
     typesetStatic();
     wireSliders();
     wireButtons();
-    makeClockDrag(solarCanvas, false);
-    makeClockDrag(sidCanvas, true);
+    makeClockDrag(solarCanvas, false, { hour: $("solar-hour-grip"), minute: $("solar-minute-grip") });
+    makeClockDrag(sidCanvas, true, { hour: $("sidereal-hour-grip"), minute: $("sidereal-minute-grip") });
+    wireHandGrip($("solar-hour-grip"), false, "hour");
+    wireHandGrip($("solar-minute-grip"), false, "minute");
+    wireHandGrip($("sidereal-hour-grip"), true, "hour");
+    wireHandGrip($("sidereal-minute-grip"), true, "minute");
     orbitCanvas.addEventListener("pointerdown", orbitDown);
     orbitCanvas.addEventListener("pointermove", orbitMove);
     orbitCanvas.addEventListener("pointerup", orbitUp);
     orbitCanvas.addEventListener("pointercancel", orbitUp);
 
+    patchMastheadSrOnly();   // keep the masthead dialog's sr-only text hidden under subpath hosting
     document.addEventListener("sim-reset", resetSim);
     // prefers-reduced-motion change: addEventListener is modern; addListener is the
     // legacy MediaQueryList API still needed by older Safari/WebKit.

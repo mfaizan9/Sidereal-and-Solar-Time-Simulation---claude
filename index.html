@@ -32,11 +32,17 @@
           <p class="panel__help sim-subtitle">ordinary clock time, based on the position of the Sun in the sky</p>
 
           <div class="panel__canvas-wrap sim-clock-wrap">
-            <canvas id="solar-canvas" class="sim-clock" width="258" height="258"
-                    role="img" aria-label="Solar 24-hour clock"
-                    aria-describedby="solar-clock-desc"></canvas>
+            <div class="sim-clock-stage">
+              <canvas id="solar-canvas" class="sim-clock" width="258" height="258"
+                      role="img" aria-label="Solar 24-hour clock"
+                      aria-describedby="solar-clock-desc"></canvas>
+              <div class="sim-hand-grip" id="solar-hour-grip" role="slider" tabindex="0"
+                   aria-label="Solar clock hour hand" aria-valuemin="0" aria-valuemax="24" aria-valuenow="12"></div>
+              <div class="sim-hand-grip" id="solar-minute-grip" role="slider" tabindex="0"
+                   aria-label="Solar clock minute hand" aria-valuemin="0" aria-valuemax="60" aria-valuenow="0"></div>
+            </div>
           </div>
-          <p id="solar-clock-desc" class="sr-only" aria-live="polite"></p>
+          <p id="solar-clock-desc" class="sr-only"></p>
 
           <div class="sim-readout-line">
             <span id="solar-days-eqn" class="sim-readout__text" aria-hidden="true"></span>
@@ -79,11 +85,17 @@
           <p class="panel__help sim-subtitle">&ldquo;astronomer&rsquo;s time&rdquo;, based on the right ascension of a star on the observer&rsquo;s meridian</p>
 
           <div class="panel__canvas-wrap sim-clock-wrap">
-            <canvas id="sidereal-canvas" class="sim-clock" width="258" height="258"
-                    role="img" aria-label="Sidereal 24-hour clock"
-                    aria-describedby="sidereal-clock-desc"></canvas>
+            <div class="sim-clock-stage">
+              <canvas id="sidereal-canvas" class="sim-clock" width="258" height="258"
+                      role="img" aria-label="Sidereal 24-hour clock"
+                      aria-describedby="sidereal-clock-desc"></canvas>
+              <div class="sim-hand-grip" id="sidereal-hour-grip" role="slider" tabindex="0"
+                   aria-label="Sidereal clock hour hand" aria-valuemin="0" aria-valuemax="24" aria-valuenow="0"></div>
+              <div class="sim-hand-grip" id="sidereal-minute-grip" role="slider" tabindex="0"
+                   aria-label="Sidereal clock minute hand" aria-valuemin="0" aria-valuemax="60" aria-valuenow="0"></div>
+            </div>
           </div>
-          <p id="sidereal-clock-desc" class="sr-only" aria-live="polite"></p>
+          <p id="sidereal-clock-desc" class="sr-only"></p>
 
           <div class="sim-readout-line">
             <span id="sidereal-days-eqn" class="sim-readout__text" aria-hidden="true"></span>
@@ -135,7 +147,7 @@
                 drag to change the day (hold <kbd>Shift</kbd> while dragging the globe to step by sidereal days):
               </label>
               <div class="sim-dayslider__track">
-                <span class="sim-dayslider__aries" aria-hidden="true"><span data-tex="\text{♈}"></span></span>
+                <span class="sim-dayslider__aries aries" aria-hidden="true">♈</span>
                 <input class="sim-slider sim-dayslider__input" type="range" id="day-range"
                        min="0" max="365" step="1" value="0" aria-describedby="solar-days-sr">
                 <div class="sim-dayslider__months" aria-hidden="true"></div>
@@ -144,10 +156,10 @@
           </fieldset>
 
           <fieldset class="control-fieldset">
-            <legend class="control-fieldset__legend">go to:</legend>
+            <legend class="control-fieldset__legend sr-only">go to season:</legend>
             <div class="control-grid sim-season-grid">
               <button type="button" class="button sim-btn sim-season sim-math-btn" id="goto-ve" aria-pressed="false"
-                      aria-label="go to the vernal equinox">vernal<br>equinox&nbsp;<span data-tex="(\text{♈})"></span></button>
+                      aria-label="go to the vernal equinox">vernal<br>equinox</button>
               <button type="button" class="button sim-btn sim-season" id="goto-ss" aria-pressed="false"
                       aria-label="go to the summer solstice">summer<br>solstice</button>
               <button type="button" class="button sim-btn sim-season" id="goto-ae" aria-pressed="false"
@@ -169,7 +181,7 @@
               <!-- MathJax sidereal-hour labels around the orbit ring (typeset, not canvas-baked). -->
               <span class="sim-orbit-label sim-orbit-label--top">
                 <span data-tex="0^{\rm h}"></span>
-                <span class="sim-orbit-sub" data-tex="\text{vernal equinox (♈)}"></span>
+                <span class="sim-orbit-sub">vernal equinox (<span class="aries">♈</span>)</span>
               </span>
               <span class="sim-orbit-label sim-orbit-label--left"><span data-tex="6^{\rm h}"></span></span>
               <span class="sim-orbit-label sim-orbit-label--bottom"><span data-tex="12^{\rm h}"></span></span>
@@ -182,7 +194,7 @@
             while dragging the globe to step by sidereal days. Keyboard users can use the sliders
             and buttons in the panels at left.
           </p>
-          <p id="orbit-desc" class="sr-only" aria-live="polite"></p>
+          <p id="orbit-desc" class="sr-only"></p>
         </section>
 
       </div><!-- /sim-grid -->

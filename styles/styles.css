@@ -30,6 +30,10 @@
   font-display: swap;
   unicode-range: U+2648;
 }
+/* Use the self-hosted Aries glyph for any ♈ shown as plain text (readout, buttons,
+   orbit label, slider marker) so it renders the same on every OS/browser. MathJax's
+   own ♈ falls back to the system serif font, which is blank where that font lacks it. */
+.aries { font-family: "AriesGlyph", "Sans-Serif", Arial, Helvetica, sans-serif; }
 
 /* Body copy noticeably larger than default, in rem so it tracks the user's browser
    font setting (WCAG 1.4.4). */
@@ -112,24 +116,46 @@ body { font-size: 1.125rem; }
     max-height: 100%;
     margin: 0;
   }
-  /* Full-width Day of Year -> its four season buttons sit in one row.
-     (Higher specificity than the base 2-col rule, which appears later in source.) */
-  .sim-area-day .sim-season-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
 /* ============================================================================
    CLOCKS -- reused exported clock-face bitmap + code-drawn hands on canvas.
    ========================================================================== */
 .sim-clock-wrap { line-height: 0; padding: 0.5rem 1rem 0.25rem; }
+/* Square stage that exactly matches the canvas box, so the focusable hand "grips"
+   below can be positioned relative to the true clock center. */
+.sim-clock-stage { position: relative; width: 100%; max-width: 17rem; margin: 0 auto; }
 .sim-clock {
   display: block;
   width: 100%;
   height: auto;
-  max-width: 17rem;
-  margin: 0 auto;
   touch-action: none;            /* dragging a hand must not scroll the page */
   cursor: pointer;
 }
+
+/* Focusable, keyboard-operable hand grips (role="slider"), one per clock hand.
+   They overlay the canvas along each hand so the focus ring sits on the hand, but
+   pointer-events are off so the canvas still handles dragging (a click on a hand
+   focuses its grip programmatically). Invisible until focused. */
+.sim-hand-grip {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;                   /* anchored at the clock center */
+  width: 14px;
+  transform-origin: 50% 100%;
+  transform: translateX(-50%) rotate(0deg);
+  background: transparent;
+  border: 0; padding: 0; margin: 0;
+  border-radius: 7px;
+  pointer-events: none;          /* canvas handles dragging; grips are focused via JS */
+}
+.sim-hand-grip:focus-visible {
+  outline: 3px solid var(--outline-color, #ffbc00);
+  outline-offset: 1px;
+  background: rgba(255, 188, 0, 0.20);
+}
+#solar-hour-grip, #sidereal-hour-grip { height: 23%; }     /* hour hand length */
+#solar-minute-grip, #sidereal-minute-grip { height: 36%; } /* minute hand length */
 
 /* ---- The "... days since Aries" readout (plain text, left-aligned) ---- */
 .sim-readout-line {
@@ -190,7 +216,10 @@ body { font-size: 1.125rem; }
 /* ============================================================================
    DAY OF YEAR slider -- native range (full keyboard support) + month ticks.
    ========================================================================== */
-.sim-dayslider { padding: 0 1rem 0.5rem; }
+/* No horizontal padding: the slider then shares the same left/right extent as the
+   season-button fieldset below it, so each button's notch lines up with its day on
+   the slider. */
+.sim-dayslider { padding: 0 0 0.5rem; }
 .sim-dayslider__label { display: block; margin-bottom: 0.5rem; }
 .sim-dayslider__track { position: relative; padding-top: 1.4rem; }
 .sim-dayslider__aries {
@@ -198,19 +227,30 @@ body { font-size: 1.125rem; }
   font-size: 1.1rem; transform: translateX(-10%);
 }
 .sim-dayslider__input { width: 100%; }
+/* Month labels positioned at their true place in the year (i/12), so the season
+   notches (vernal 0, summer 1/4, autumnal 1/2, winter 3/4) line up with the
+   March / June / September / December labels above them. */
 .sim-dayslider__months {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 0.25rem;
+  position: relative;
+  height: 1.5rem;
+  margin-top: 0.1rem;
   font-size: 0.8rem;
   color: var(--foreground-color, #1a1a1a);
 }
 .sim-dayslider__months span {
-  flex: 1 0 0;
-  text-align: center;
-  border-left: 1px solid #bbb;
+  position: absolute;
+  top: 0.5rem;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
-.sim-dayslider__months span:first-child { border-left: none; }
+.sim-dayslider__months span::before {   /* small ruler tick above each label */
+  content: "";
+  position: absolute;
+  left: 50%; top: -0.5rem;
+  width: 1px; height: 0.4rem;
+  background: #999;
+  transform: translateX(-50%);
+}
 
 /* ============================================================================
    SLIDERS (time of day + day of year) -- native range, large, keyboard ready.
@@ -246,17 +286,15 @@ body { font-size: 1.125rem; }
 /* MathJax glyph inside a button inherits the white button text color. */
 .sim-math-btn mjx-container { color: inherit !important; font-size: 1.05em !important; margin: 0 !important; }
 
-/* Highlighted state: a control is "active" when the clock is exactly at that time.
-   The button fill color is left unchanged; selection is shown with a border ring
-   (box-shadow, so there is no layout shift) + a check mark + aria-pressed. */
+/* Highlighted state ("at this time / season") -- a COLOR CHANGE like the original.
+   A border ring (box-shadow -> no layout shift) plus aria-pressed are the non-color
+   cues for WCAG. No added content/text, so toggling it never resizes or reflows the
+   button (the previous check-mark approach shifted neighboring elements). */
 .sim-goto[aria-pressed="true"],
 .sim-season[aria-pressed="true"] {
+  background: var(--alert-color-g, #b3f681);
+  color: #000000;
   box-shadow: 0 0 0 3px var(--foreground-color, #1a1a1a);
-}
-.sim-goto[aria-pressed="true"]::after,
-.sim-season[aria-pressed="true"]::after {
-  content: " \2713";             /* check mark -> state cue that doesn't rely on color */
-  font-weight: 900;
 }
 
 .sim-goto-grid, .sim-season-grid {
@@ -265,7 +303,12 @@ body { font-size: 1.125rem; }
 }
 .sim-goto-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .sim-goto-row .sim-goto { flex: 1 1 3rem; }
-.sim-season { min-height: 3.4rem; }
+.sim-season { min-height: 3.4rem; position: relative; }
+/* When the Day-of-Year panel is wide enough, lay the four equinox/solstice buttons
+   out in one row spanning the slider. */
+@media (min-width: 36rem) {
+  .sim-area-day .sim-season-grid { grid-template-columns: repeat(4, 1fr); }
+}
 
 /* ============================================================================
    RESPONSIVE -- carry the layout down to phone portrait; honor reduced motion.
