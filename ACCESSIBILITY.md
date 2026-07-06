@@ -87,11 +87,13 @@ bitmap numerals into positioned MathJax overlays would mean redrawing exported a
 - `prefers-reduced-motion: reduce` is honored: button transitions resolve instantly to
   the end state. The longest animation is 2 s and user-initiated; nothing loops, so no
   Pause control is required (Reset is in the masthead).
-- **Flash / seizure safety (WCAG 2.3.1):** during fast advances the clock hands (and the
-  orbiting figure) would otherwise sweep many times per second. Each spinning element's
-  opacity is now scaled by its rotation speed — solid when slow, fading to ~16% once it
-  exceeds ~3 revolutions/sec — so a rapid sweep reads as a soft blur rather than a
-  strobe. Speed is measured between frames from the state, so it tracks the real motion.
+- **Flash / seizure safety (WCAG 2.3.1):** during the button-triggered auto-advances the
+  clock hands would otherwise sweep many times per second. The hands' opacity is scaled by
+  rotation speed — solid when slow, fading to ~16% once it exceeds ~3 revolutions/sec — so a
+  rapid sweep reads as a soft blur rather than a strobe. The fade applies ONLY during
+  auto-animations, never while the user drags (which is user-paced and can't strobe). The
+  observer figure is drawn as a solid opaque white silhouette at constant opacity (never
+  faded/tinted) so its appearance stays stable.
 
 ## Zoom / reflow
 - Body text is ≥ 1.125 rem and everything is sized in rem/%/clamp, so the layout reflows

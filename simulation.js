@@ -263,6 +263,20 @@
     im.onload = function () { render(); };
     return im;
   }
+  // Recolor an image to a solid, opaque white silhouette (keeps its shape/alpha).
+  // Used for the observer figure so it is always the same white while the globe
+  // rotates/slides beneath it -- never picking up the color behind it.
+  function makeWhite(image) {
+    var w = image.naturalWidth || image.width, h = image.naturalHeight || image.height;
+    var c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    var cx = c.getContext("2d");
+    cx.drawImage(image, 0, 0, w, h);
+    cx.globalCompositeOperation = "source-in";   // paint white only where the figure is
+    cx.fillStyle = "#ffffff";
+    cx.fillRect(0, 0, w, h);
+    return c;
+  }
 
   /* ==========================================================================
      RENDERING -- one render() redraws both clocks + the orbit from state and
@@ -381,12 +395,11 @@
       ctx.beginPath(); ctx.arc(0, 0, ORBIT.globeR, 0, 2 * Math.PI);
       ctx.fillStyle = "#5a9a3a"; ctx.fill();
     }
-    if (img.figure && img.figure.complete) {
-      // The figure orbits the globe ~1 turn per solar day; fade it when spinning
-      // fast so it doesn't strobe during quick advances (WCAG 2.3.1).
-      ctx.globalAlpha = spinAlpha(rate || 0);
-      ctx.drawImage(img.figure, -ORBIT.figW / 2, -(ORBIT.globeR + ORBIT.figH), ORBIT.figW, ORBIT.figH);
-      ctx.globalAlpha = 1;
+    // Observer figure: always a solid opaque white silhouette, full opacity (never
+    // faded/tinted), so its color stays constant while the globe rotates/slides.
+    var fig = img.figureWhite || (img.figure && img.figure.complete ? img.figure : null);
+    if (fig) {
+      ctx.drawImage(fig, -ORBIT.figW / 2, -(ORBIT.globeR + ORBIT.figH), ORBIT.figW, ORBIT.figH);
     }
     ctx.restore();
   }
@@ -477,7 +490,10 @@
   }
 
   // Spin speed (solar days/sec) measured between renders, used to fade fast-spinning
-  // art so it can't strobe. Idle gaps (dt too large) count as no spin.
+  // art so it can't strobe. Idle gaps (dt too large) count as no spin. The fade is
+  // applied ONLY during the button-triggered auto-animations -- NOT while the user
+  // drags a hand / the globe / the day slider (those are user-paced and can't strobe,
+  // and fading the figure mid-drag made it look like the person vanished).
   var _spinLastT = 0, _spinLastSolar = null;
   function solarSpinRate() {
     var t = now(), rate = 0;
@@ -486,7 +502,7 @@
       if (dt > 0 && dt < 0.5) rate = Math.abs(tm.latestSolarTime - _spinLastSolar) / dt;
     }
     _spinLastT = t; _spinLastSolar = tm.latestSolarTime;
-    return rate;
+    return tm.isAnimating ? rate : 0;
   }
 
   // ---- the single render(): canvas + DOM + readouts -------------------------
@@ -829,8 +845,10 @@
     setupCanvasDPR(orbitCanvas, ORBIT.w, ORBIT.w);
 
     img.earth = loadImage("assets/earth.png");
-    img.figure = loadImage("assets/figure.png");
     img.face = loadImage("assets/clock-face.png");
+    img.figure = new Image();
+    img.figure.onload = function () { img.figureWhite = makeWhite(img.figure); render(); };
+    img.figure.src = "assets/figure.png";
 
     buildMonths();
     typesetStatic();

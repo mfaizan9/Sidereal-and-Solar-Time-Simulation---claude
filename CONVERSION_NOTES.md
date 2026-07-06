@@ -108,8 +108,11 @@ entries' accessibility boilerplate.
 - **Keyboard-operable clock hands (usability add).** Each clock hand is a focusable
   `role="slider"` grip in the Tab order; clicking a hand focuses it and arrow keys rotate
   it (counter/clockwise). It mutates the same `solarTime` as the pointer drag.
-- **Flash/seizure safety.** Fast-spinning hands and the orbiting figure fade with rotation
-  speed so a quick sweep is a soft blur, not a strobe (WCAG 2.3.1).
+- **Flash/seizure safety.** Fast-spinning clock hands fade with rotation speed during the
+  auto-advances so a quick sweep is a soft blur, not a strobe (WCAG 2.3.1); the fade never
+  applies during user dragging. The observer figure is a solid opaque white silhouette
+  (recolored once from the exported bitmap), drawn at constant opacity so its color never
+  changes as the globe slides/rotates.
 - **Reduced motion.** With `prefers-reduced-motion: reduce`, all button animations use
   duration 0 (the end state is shown instantly). There is no continuous/looping motion
   in this sim (the longest animation is 2 s, user-initiated), so no Pause control is
